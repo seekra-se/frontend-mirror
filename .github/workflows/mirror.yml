@@ -1,0 +1,44 @@
+name: Pull Mirror
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pull-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone source repository
+        env:
+          SOURCE_URL: ${{ vars.SOURCE_URL }}
+        run: |
+          git clone --mirror "$SOURCE_URL" source.git
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ vars.REPOSITORY_NAME }}
+
+      - name: Push to GitHub
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          OWNER: ${{ github.repository_owner }}
+          REPOSITORY: ${{ vars.REPOSITORY_NAME }}
+        run: |
+          cd source.git
+          git remote add github \
+            "https://x-access-token:${GH_TOKEN}@github.com/${OWNER}/${REPOSITORY}.git"
+          git push --mirror github

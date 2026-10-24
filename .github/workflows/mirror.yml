@@ -41,4 +41,7 @@ jobs:
           cd source.git
           git remote add github \
             "https://x-access-token:${GH_TOKEN}@github.com/${OWNER}/${REPOSITORY}.git"
-          git push --mirror github
+          git push --prune github \
+            '+refs/heads/*:refs/heads/*' \
+            '+refs/tags/*:refs/tags/*' \
+            '+refs/notes/*:refs/notes/*'
